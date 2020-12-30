@@ -3,6 +3,14 @@ import type * as mongoose from 'mongoose';
 import type { Base } from './defaultClasses';
 import type { Severity, WhatIsIt } from './internal/constants';
 
+type FunctionPropertyNames<T> = {
+  [K in keyof T]: 0 extends (1 & T[K]) ? never : (T[K] extends Function ? K : never)
+}[keyof T];
+
+interface Test {
+  _id: unknown;
+}
+type Testing<T> = T extends Test ? T['_id'] : mongoose.Types.ObjectId;
 /**
  * Get the Type of an instance of a Document with Class properties
  * @example
@@ -13,14 +21,15 @@ import type { Severity, WhatIsIt } from './internal/constants';
  * const t: DocumentType<Name> = await NameModel.create({} as Partitial<Name>);
  * ```
  */
-export type DocumentType<T> = (
-  T extends Base<any> ? Omit<mongoose.Document, '_id'> & T : mongoose.Document & T
-) & IObjectWithTypegooseFunction;
-// I tested "T & (T extends ? : )" already, but it didnt work out
+// export type DocumentType<T> = (
+//   T extends Base<any> ? Omit<mongoose.Document, '_id'> & T : mongoose.Document & T
+// ) & IObjectWithTypegooseFunction;
+export type DocumentType<T> = mongoose.Document<Testing<T>> & mongoose._LeanDocument<T> /* & IObjectWithTypegooseFunction & { _id?: Testing<T>; } */;
+export type DocumentDefinition<T> = /* mongoose.Document & */ mongoose.DocumentDefinition<T>;
 /**
  * Used Internally for ModelTypes
  */
-export type ModelType<T, QueryHelpers = {}> = mongoose.Model<DocumentType<T>, QueryHelpers>;
+export type ModelType<T, QueryHelpers = {}> = mongoose.Model<DocumentType<T>>;
 /**
  * Any-param Constructor
  */
